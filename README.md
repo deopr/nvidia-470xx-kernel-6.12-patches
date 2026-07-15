@@ -86,6 +86,16 @@ sudo depmod -a $(uname -r)
 | Distro | LMDE 7 (gigi) / Debian Trixie |
 | GCC | 14.x |
 
+## Note: nvidia-settings
+
+`nvidia-settings` is not included in the build script. If you want the NVIDIA Settings GUI:
+
+```bash
+sudo apt install nvidia-settings
+```
+
+It's version-independent, so the 550.x package from the repos works fine with our 470.256.02 kernel module.
+
 ## Known Limitations
 
 - `os_lookup_user_io_memory()` (IO-memory PTE lookup) fails — only affects user-space IO mappings, not desktop/rendering
