@@ -1,4 +1,4 @@
-# NVIDIA 470.xx Legacy Driver for Linux Kernel 6.12+
+# NVIDIA 470.xx Legacy Driver for Linux Kernel 6.8+
 
 Patches to build the NVIDIA 470.xx legacy driver (last to support **Kepler GPUs**: GTX 600/700 series) against Linux kernel 6.8+.
 
@@ -13,6 +13,44 @@ Patches to build the NVIDIA 470.xx legacy driver (last to support **Kepler GPUs*
 All NVIDIA Kepler GPUs (GeForce 600/700 series), including but not limited to:
 GTX 660, GTX 660 Ti, GTX 670, GTX 680, GTX 760, GTX 770, GTX 780, GTX Titan
 
+## Quick Start
+
+```bash
+git clone https://github.com/Peterplime/nvidia-470xx-kernel-6.12-patches.git
+cd nvidia-470xx-kernel-6.12-patches
+./build.sh --install
+sudo reboot
+```
+
+Or build a `.deb` package:
+
+```bash
+./build.sh --deb
+sudo dpkg -i nvidia-470xx-470.256.02_amd64.deb
+sudo reboot
+```
+
+## Build Script
+
+The `build.sh` script handles everything: download, patch, build, and install.
+
+```
+./build.sh              Build kernel modules only
+./build.sh --install    Build + install modules, userspace, and system config
+./build.sh --deb        Build + package as .deb (requires dpkg-deb)
+./build.sh --clean      Remove downloaded source and build artifacts
+./build.sh --help       Show all options
+```
+
+## Forking for Other GPUs / Driver Versions
+
+This repo is designed to be forked. To adapt it for a different NVIDIA driver or kernel version:
+
+1. **Edit `build.sh`** — change `DRIVER_VERSION` and `DRIVER_URL` at the top
+2. **Add or remove `.patch` files** in this directory
+3. **Update the `PATCHES` array** in `build.sh` to list your patches in order
+4. **Test** — run `./build.sh` and fix any new compilation errors
+
 ## What's Patched
 
 | Patch | File(s) | Fix |
@@ -21,55 +59,21 @@ GTX 660, GTX 660 Ti, GTX 670, GTX 680, GTX 760, GTX 770, GTX 780, GTX Titan
 | `002-conftest-gcc-flags` | `conftest.sh` | GCC 12+ `-Werror=implicit-function-declaration` |
 | `003-drm-compat` | `nvidia-drm-drv.c` | DRM `output_poll_changed` removed, `FOP_UNSIGNED_OFFSET` moved (6.12) |
 | `004-kbuild-symlink` | `nvidia.Kbuild`, `nvidia-modeset.Kbuild` | kbuild CWD symlink fix |
-| `005-xorg-config` | `20-nvidia.conf` | Xorg OutputConfig for nvidia-drm |
 
-## How to Apply
+## Manual Build (without the script)
 
-### Automated (recommended)
+If you prefer to do it by hand:
+
 ```bash
-# Download NVIDIA 470.256.02 driver
 wget https://us.download.nvidia.com/XFree86/Linux-x86_64/470.256.02/NVIDIA-Linux-x86_64-470.256.02.run
-
-# Extract
 sh NVIDIA-Linux-x86_64-470.256.02.run --extract-only
 cd NVIDIA-Linux-x86_64-470.256.02
-
-# Apply patches
-for p in ../001-follow-pfn.patch ../002-conftest-gcc-flags.patch \
-         ../003-drm-compat.patch ../004-kbuild-symlink.patch; do
-    patch -p1 < "$p"
-done
-
-# Build kernel modules
+for p in ../001-*.patch ../002-*.patch ../003-*.patch ../004-*.patch; do patch -p1 < "$p"; done
 cd kernel
 make KERNEL_UNAME=$(uname -r) modules -j$(nproc)
-
-# Install modules
 sudo mkdir -p /lib/modules/$(uname -r)/extra
 sudo cp *.ko /lib/modules/$(uname -r)/extra/
 sudo depmod -a $(uname -r)
-
-# Install userspace
-sudo cp ../nvidia-smi /usr/bin/
-sudo cp ../lib*.so* /usr/lib/x86_64-linux-gnu/
-sudo ldconfig
-
-# Blacklist nouveau
-echo "blacklist nouveau" | sudo tee /etc/modprobe.d/blacklist-nouveau.conf
-echo "options nouveau modeset=0" | sudo tee -a /etc/modprobe.d/blacklist-nouveau.conf
-
-# Module autoloading
-echo -e "nvidia\nnvidia-modeset\nnvidia-drm\nnvidia-uvm" | sudo tee /etc/modules-load.d/nvidia.conf
-
-# Xorg config
-sudo mkdir -p /etc/X11/xorg.conf.d
-sudo cp ../20-nvidia.conf /etc/X11/xorg.conf.d/
-
-# Update initramfs
-sudo update-initramfs -u
-
-# Reboot
-sudo reboot
 ```
 
 ## Tested On
@@ -96,4 +100,4 @@ sudo reboot
 
 ## License
 
-NVIDIA's driver is proprietary. The patches here are provided as-is for educational purposes.
+NVIDIA's driver is proprietary. The patches and build script here are provided as-is for educational purposes.

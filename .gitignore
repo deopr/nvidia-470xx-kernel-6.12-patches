@@ -1,0 +1,10 @@
+NVIDIA-Linux-x86_64-*.run
+NVIDIA-Linux-x86_64-*/
+nvidia-470xx-*.deb
+*.o
+*.ko
+*.mod.c
+*.cmd
+.tmp_versions/
+Module.symvers
+modules.order
