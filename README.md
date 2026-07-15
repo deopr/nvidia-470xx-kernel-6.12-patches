@@ -100,4 +100,4 @@ sudo depmod -a $(uname -r)
 
 ## License
 
-NVIDIA's driver is proprietary. The patches and build script here are provided as-is for educational purposes.
+[MIT License](LICENSE) — use, fork, modify freely. NVIDIA's driver itself is proprietary; the patches and build script here are open.
