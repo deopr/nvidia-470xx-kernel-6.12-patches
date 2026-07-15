@@ -1,0 +1,18 @@
+From: patched locally
+Subject: [PATCH 4/5] Fix kbuild symlink for newer kernels
+
+Use absolute paths for symlink creation to avoid kbuild CWD issues.
+
+--- a/kernel/nvidia/nvidia.Kbuild
++++ b/kernel/nvidia/nvidia.Kbuild
+@@ -43,7 +43,7 @@
+ quiet_cmd_symlink = SYMLINK $@
+- cmd_symlink = ln -sf $< $@
++ cmd_symlink = ln -sf $(abspath $<) $@
+
+--- a/kernel/nvidia-modeset/nvidia-modeset.Kbuild
++++ b/kernel/nvidia-modeset/nvidia-modeset.Kbuild
+@@ -43,7 +43,7 @@
+ quiet_cmd_symlink = SYMLINK $@
+- cmd_symlink = ln -sf $< $@
++ cmd_symlink = ln -sf $(abspath $<) $@

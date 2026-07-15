@@ -1,0 +1,81 @@
+From: patched locally
+Subject: [PATCH 3/5] Fix DRM compatibility for kernel 6.12
+
+- output_poll_changed removed from drm_mode_config_funcs in 6.12
+- FOP_UNSIGNED_OFFSET moved to fop_flags in 6.12
+- Replace output_poll_changed with drm_client hotplug callback
+
+Based on work by Joan Bruguera Micó.
+
+--- a/kernel/nvidia-drm/nvidia-drm-drv.c
++++ b/kernel/nvidia-drm/nvidia-drm-drv.c
+@@ -83,6 +83,11 @@
+ #if defined(NV_DRM_ATOMIC_MODESET_AVAILABLE)
+ #include <drm/drm_atomic_helper.h>
+ #endif
+ 
++#include <linux/version.h>
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++#include <drm/drm_client.h>
++#endif
++
+ static struct nv_drm_device *dev_list = NULL;
+
+@@ -168,7 +173,9 @@
+     .atomic_check  = nv_drm_atomic_check,
+     .atomic_commit = nv_drm_atomic_commit,
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+     .output_poll_changed = nv_drm_output_poll_changed,
++#endif
+ };
+
+@@ -741,6 +748,9 @@
+     .read           = drm_read,
+ 
+     .llseek         = noop_llseek,
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++    .fop_flags      = FOP_UNSIGNED_OFFSET,
++#endif
+ };
+
+@@ -914,6 +924,18 @@
++ * Helper function for allocate/register DRM device for given NVIDIA GPU ID.
++ */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++static int hotplug_helper_client_hotplug(struct drm_client_dev *client)
++{
++    nv_drm_output_poll_changed(client->dev);
++    return 0;
++}
++
++static const struct drm_client_funcs nv_hotplug_helper_client_funcs = {
++    .owner      = THIS_MODULE,
++    .hotplug    = hotplug_helper_client_hotplug,
++};
++#endif
++
+ static void nv_drm_register_drm_device(const nv_gpu_info_t *gpu_info)
+
+@@ -960,6 +982,20 @@
+     if (drm_dev_register(dev, 0) != 0) {
+         NV_DRM_DEV_LOG_ERR(nv_dev, "Failed to register device");
+         goto failed_drm_register;
+     }
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++    {
++        struct drm_client_dev *client = kzalloc(sizeof(*client), GFP_KERNEL);
++        if (client == NULL || drm_client_init(dev, client,
++            "nv-hotplug-helper", &nv_hotplug_helper_client_funcs)) {
++            printk(KERN_WARNING "nvidia-drm: Failed to initialize the nv-hotplug-helper DRM client"
++                " (ensure DRM kernel mode setting is enabled via nvidia-drm.modeset=1).\n");
++            if (client)
++                kfree(client);
++        } else {
++            drm_client_register(client);
++        }
++    }
++#endif
+ 
+     /* Add NVIDIA-DRM device into list */

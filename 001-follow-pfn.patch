@@ -1,0 +1,54 @@
+From: patched locally
+Subject: [PATCH 1/5] Fix follow_pfn/unsafe_follow_pfn removal in kernel 6.8+
+
+Both follow_pfn() and unsafe_follow_pfn() were removed in kernel 6.8+.
+Patch the conftest and source to handle their absence gracefully.
+
+--- a/kernel/nvidia/os-mlock.c
++++ b/kernel/nvidia/os-mlock.c
+@@ -17,10 +17,10 @@ static inline int nv_follow_pfn(struct vm_area_struct *vma,
+                                 unsigned long address,
+                                 unsigned long *pfn)
+ {
+-#if defined(NV_UNSAFE_FOLLOW_PFN_PRESENT)
+-    return unsafe_follow_pfn(vma, address, pfn);
+-#else
++#if defined(NV_FOLLOW_PFN_PRESENT)
+     return follow_pfn(vma, address, pfn);
++#else
++    return -1;
+ #endif
+ }
+ 
+--- a/kernel/nvidia/nvidia.Kbuild
++++ b/kernel/nvidia/nvidia.Kbuild
+@@ -164,7 +164,7 @@
+ NV_CONFTEST_FUNCTION_COMPILE_TESTS += sg_page_iter_page
+-NV_CONFTEST_FUNCTION_COMPILE_TESTS += unsafe_follow_pfn
++NV_CONFTEST_FUNCTION_COMPILE_TESTS += follow_pfn
+ 
+--- a/kernel/conftest.sh
++++ b/kernel/conftest.sh
+@@ -4686,18 +4686,16 @@
+-        unsafe_follow_pfn)
++        follow_pfn)
+             #
+-            # Determine if unsafe_follow_pfn() is present.
++            # Determine if follow_pfn() is present.
+             #
+-            # unsafe_follow_pfn() was added by commit 69bacee7f9ad
+-            # ("mm: Add unsafe_follow_pfn") in v5.13-rc1.
++            # follow_pfn() was available from v2.6.31-rc1 and removed
++            # in kernel 6.8+.
+             #
+             CODE="
+             #include <linux/mm.h>
+-            void conftest_unsafe_follow_pfn(void) {
+-                unsafe_follow_pfn();
++            void conftest_follow_pfn(void) {
++                follow_pfn();
+             }"
+ 
+-            compile_check_conftest "$CODE" "NV_UNSAFE_FOLLOW_PFN_PRESENT" "" "functions"
++            compile_check_conftest "$CODE" "NV_FOLLOW_PFN_PRESENT" "" "functions"
+         ;;

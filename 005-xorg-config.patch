@@ -1,0 +1,13 @@
+From: patched locally
+Subject: [PATCH 5/5] Add Xorg and module autoload configs
+
+--- /dev/null
++++ b/20-nvidia.conf
+@@ -0,0 +1,7 @@
++Section "OutputClass"
++    Identifier "nvidia"
++    MatchDriver "nvidia-drm"
++    Driver "nvidia"
++    Option "AllowEmptyInitialConfiguration"
++    ModulePath "/usr/lib/x86_64-linux-gnu/nvidia/xorg,/usr/lib/xorg/modules"
++EndSection
