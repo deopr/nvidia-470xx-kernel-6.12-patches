@@ -96,6 +96,12 @@ sudo apt install nvidia-settings
 
 It's version-independent, so the 550.x package from the repos works fine with our 470.256.02 kernel module.
 
+## Compatibility
+Currently Debian/Ubuntu only (dpkg, update-initramfs). 
+Other distros: the build/patch steps are universal, but you'll need to 
+adapt `configure_system()` for your initramfs tool (dracut, mkinitcpio) 
+and package paths.
+
 ## Known Limitations
 
 - `os_lookup_user_io_memory()` (IO-memory PTE lookup) fails — only affects user-space IO mappings, not desktop/rendering
